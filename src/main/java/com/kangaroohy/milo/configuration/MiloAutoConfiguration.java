@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
-import javax.annotation.PreDestroy;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -40,7 +39,7 @@ public class MiloAutoConfiguration {
         this.properties = properties;
     }
 
-    @Bean(name = "miloConnectPool")
+    @Bean(name = "miloConnectPool", destroyMethod = "close")
     @ConditionalOnMissingBean({MiloConnectPool.class})
     protected MiloConnectPool miloConnectPool(Optional<MiloConfigProvider> configProvider) {
         String primary = initConfig(configProvider);
@@ -131,13 +130,5 @@ public class MiloAutoConfiguration {
             }
         });
 
-    }
-
-    @PreDestroy
-    public void destroy() {
-        if (connectPool != null) {
-            connectPool.close();
-            log.info("all opcUaClients are closed");
-        }
     }
 }

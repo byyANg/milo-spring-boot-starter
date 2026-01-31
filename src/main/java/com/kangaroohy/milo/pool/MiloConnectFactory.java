@@ -10,9 +10,9 @@ import org.apache.commons.pool2.KeyedPooledObjectFactory;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
-import org.eclipse.milo.opcua.sdk.client.api.identity.AnonymousProvider;
-import org.eclipse.milo.opcua.sdk.client.api.identity.IdentityProvider;
-import org.eclipse.milo.opcua.sdk.client.api.identity.UsernameProvider;
+import org.eclipse.milo.opcua.sdk.client.identity.AnonymousProvider;
+import org.eclipse.milo.opcua.sdk.client.identity.IdentityProvider;
+import org.eclipse.milo.opcua.sdk.client.identity.UsernameProvider;
 import org.eclipse.milo.opcua.stack.core.security.SecurityPolicy;
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.Unsigned;
@@ -48,11 +48,11 @@ public class MiloConnectFactory implements KeyedPooledObjectFactory<MiloProperti
         OpcUaClient client = null;
         try {
             client = createClient(key);
-            client.connect().get();
+            client.connect();
             return new DefaultPooledObject<>(client);
         } catch (Exception e) {
             if (client != null) {
-                client.disconnect().get();
+                client.disconnect();
             }
             throw new InterruptedException(e.getMessage());
         }
@@ -68,7 +68,7 @@ public class MiloConnectFactory implements KeyedPooledObjectFactory<MiloProperti
     public void destroyObject(MiloProperties.Config key, PooledObject<OpcUaClient> pooledObject) throws Exception {
         OpcUaClient opcUaClient = pooledObject.getObject();
         log.info("disconnect opcUaClient {}", opcUaClient.getConfig().getApplicationName().getText());
-        opcUaClient.disconnect().get();
+        opcUaClient.disconnect();
     }
 
     /**
@@ -111,6 +111,7 @@ public class MiloConnectFactory implements KeyedPooledObjectFactory<MiloProperti
                     }
                     return Optional.of(description);
                 },
+                transportConfigBuilder -> {},
                 configBuilder ->
                         configBuilder
                                 .setApplicationName(LocalizedText.english("milo opc-ua client"))
@@ -121,7 +122,6 @@ public class MiloConnectFactory implements KeyedPooledObjectFactory<MiloProperti
                                 .setCertificateValidator(KeyStoreLoader.getCertificateValidator())
                                 .setIdentityProvider(this.identityProvider(key))
                                 .setRequestTimeout(Unsigned.uint(5000))
-                                .build()
         );
     }
 

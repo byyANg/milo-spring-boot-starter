@@ -1,8 +1,10 @@
 package com.kangaroohy.milo.utils;
 
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.milo.opcua.stack.client.security.DefaultClientCertificateValidator;
-import org.eclipse.milo.opcua.stack.core.security.DefaultTrustListManager;
+import org.eclipse.milo.opcua.stack.core.security.DefaultClientCertificateValidator;
+import org.eclipse.milo.opcua.stack.core.security.FileBasedTrustListManager;
+import org.eclipse.milo.opcua.stack.core.security.MemoryCertificateQuarantine;
+import org.eclipse.milo.opcua.stack.core.security.TrustListManager;
 import org.eclipse.milo.opcua.stack.core.util.SelfSignedCertificateBuilder;
 import org.eclipse.milo.opcua.stack.core.util.SelfSignedCertificateGenerator;
 
@@ -45,7 +47,7 @@ public class KeyStoreLoader {
             throw new Exception("unable to create security dir: " + SECURITY_TEMP_DIR);
         }
 
-        File pkiDir = SECURITY_TEMP_DIR.resolve("pki").toFile();
+        Path pkiDir = SECURITY_TEMP_DIR.resolve("pki");
 
         log.info("security temp dir: {}", SECURITY_TEMP_DIR.toAbsolutePath());
 
@@ -53,9 +55,9 @@ public class KeyStoreLoader {
 
         Path serverKeyStore = SECURITY_TEMP_DIR.resolve("milo-client.pfx");
 
-        DefaultTrustListManager trustListManager = new DefaultTrustListManager(pkiDir);
+        TrustListManager trustListManager = FileBasedTrustListManager.createAndInitialize(pkiDir);
 
-        certificateValidator = new DefaultClientCertificateValidator(trustListManager);
+        certificateValidator = new DefaultClientCertificateValidator(trustListManager, new MemoryCertificateQuarantine());
 
         log.info("Loading KeyStore at {}", serverKeyStore);
 

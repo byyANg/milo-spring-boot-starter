@@ -1,20 +1,44 @@
 # milo-spring-boot-starter
 
-milo 封装工具包，yml配置OPC UA地址，是否匿名等信息，即可连接OPC UA服务器
+milo 封装工具包，yml配置OPC UA地址等信息，即可连接OPC UA服务器<br>
+**注意：本fork项目使用AI修改，使用前请进行充分测试**
 
-## maven
+## 要求
 
-[![Maven Central](https://img.shields.io/maven-central/v/com.kangaroohy/milo-spring-boot-starter.svg)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22com.kangaroohy%22%20AND%20a%3A%milo-spring-boot-starter%22)
+- **JDK 17 或更高版本**
+- **Spring Boot 3.2+ 或 4.x**
 
-首次版本发布，适配 spring boot 3.x，也可在spring boot 2.x中使用
+## ~~maven~~（尚未上传）
+<!--
+[![Maven Central](https://img.shields.io/maven-central/v/com.kangaroohy/milo-spring-boot-starter.svg)](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22com.kangaroohy%22%20AND%20a%3A%22milo-spring-boot-starter%22)
 
-~~~
+版本 4.x 适配 Spring Boot 3.x/4.x 和 JDK 17+
+```xml
 <dependency>
     <groupId>com.kangaroohy</groupId>
     <artifactId>milo-spring-boot-starter</artifactId>
-    <version>${lastVersion}</version>
+    <version>4.0.0.1.0.7</version>
 </dependency>
-~~~
+```
+-->
+
+## 从旧版本升级
+
+如果您正在使用 Spring Boot 2.x 和 3.1.4.x 版本：
+
+1. 升级 JDK 到 17 或更高版本
+2. 升级 Spring Boot 到 3.2+
+3. 更新依赖到 4.0.0.1.0.7
+
+对于需要继续使用 Spring Boot 2.x 或 JDK 8 的用户，请使用旧版本 3.1.4.0.6.16。
+
+### 主要变更
+
+- 升级到 Eclipse Milo 1.0.7（从 0.6.x）
+- 完全支持 Spring Boot 3.x 和 4.x
+- 需要 JDK 17+
+- 订阅 API 完全重写，使用新的 `OpcUaSubscription` 和 `OpcUaMonitoredItem`
+- 证书管理 API 更新为 `FileBasedTrustListManager`
 
 ## 配置
 ```yaml
@@ -88,7 +112,7 @@ Opc后边的字段对应Kepware中的tag数据类型（Ua除外，为通用类�
 public class MiloTest {
     @Autowired
     MiloService miloService;
-    
+
     @Test
     public void writeToOpcUa() {
         miloService.writeToOpcUa(
@@ -177,9 +201,9 @@ public class MiloTest {
 
 new Variant(xxx)：
 > new Variant(String[])
-> 
+>
 > new Variant(Unsigned.ushort("123"))
-> 
+>
 > ....
 
 参数类型具体以标签数据类型为准，例如：

@@ -3,12 +3,11 @@ package com.kangaroohy.milo.runner.subscription;
 import com.kangaroohy.milo.utils.CustomUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient;
-import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscription;
-import org.eclipse.milo.opcua.sdk.client.api.subscriptions.UaSubscriptionManager;
-import org.eclipse.milo.opcua.sdk.client.subscriptions.ManagedDataItem;
-import org.eclipse.milo.opcua.sdk.client.subscriptions.ManagedSubscription;
+import org.eclipse.milo.opcua.sdk.client.subscriptions.MonitoredItemSynchronizationException;
+import org.eclipse.milo.opcua.sdk.client.subscriptions.OpcUaMonitoredItem;
+import org.eclipse.milo.opcua.sdk.client.subscriptions.OpcUaSubscription;
+import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId;
-import org.eclipse.milo.opcua.stack.core.types.builtin.StatusCode;
 import org.eclipse.milo.opcua.stack.core.types.builtin.unsigned.UInteger;
 
 import java.util.ArrayList;
@@ -45,9 +44,6 @@ public class SubscriptionRunner {
 
         final CountDownLatch downLatch = new CountDownLatch(1);
 
-        //添加订阅监听器，用于处理断线重连后的订阅问题
-        opcUaClient.getSubscriptionManager().addSubscriptionListener(new CustomSubscriptionListener(opcUaClient, callback));
-
         //处理订阅逻辑
         handler(opcUaClient, callback);
 
@@ -62,42 +58,53 @@ public class SubscriptionRunner {
     private void handler(OpcUaClient opcUaClient, SubscriptionCallback callback) {
         try {
             //创建订阅
-            ManagedSubscription subscription = ManagedSubscription.create(opcUaClient, samplingInterval);
-            subscription.setDefaultSamplingInterval(samplingInterval);
-            subscription.setDefaultQueueSize(UInteger.valueOf(10));
+            OpcUaSubscription subscription = new OpcUaSubscription(opcUaClient);
 
-            List<NodeId> nodeIdList = new ArrayList<>();
+            // 设置订阅监听器
+            subscription.setSubscriptionListener(new OpcUaSubscription.SubscriptionListener() {
+                @Override
+                public void onDataReceived(OpcUaSubscription subscription,
+                                         List<OpcUaMonitoredItem> items,
+                                         List<DataValue> values) {
+                    for (int i = 0; i < items.size(); i++) {
+                        callback.onSubscribe(items.get(i), values.get(i));
+                    }
+                }
+            });
+
+            // 创建订阅
+            subscription.create();
+
+            // 创建监控项
             for (String identifier : identifiers) {
-                nodeIdList.add(CustomUtil.parseNodeId(identifier));
+                NodeId nodeId = CustomUtil.parseNodeId(identifier);
+                var monitoredItem = OpcUaMonitoredItem.newDataItem(nodeId);
+
+                // 设置采样间隔
+                monitoredItem.setSamplingInterval(samplingInterval);
+
+                // 设置队列大小
+                monitoredItem.setQueueSize(UInteger.valueOf(10));
+
+                // 添加到订阅
+                subscription.addMonitoredItem(monitoredItem);
             }
-            List<ManagedDataItem> dataItemList = subscription.createDataItems(nodeIdList);
-            for (ManagedDataItem dataItem : dataItemList) {
-                dataItem.addDataValueListener((item) -> callback.onSubscribe(dataItem, item));
+
+            // 同步监控项到服务器
+            try {
+                subscription.synchronizeMonitoredItems();
+            } catch (MonitoredItemSynchronizationException e) {
+                log.error("监控项同步失败: {}", e.getMessage(), e);
+                e.getCreateResults().forEach(result -> {
+                    if (result.serviceResult().isBad()) {
+                        log.error("创建监控项失败: {}, status: {}",
+                            result.monitoredItem().getReadValueId().getNodeId(),
+                            result.serviceResult());
+                    }
+                });
             }
         } catch (Exception e) {
             log.error("订阅时出现了异常：{}", e.getMessage(), e);
-        }
-    }
-
-    private class CustomSubscriptionListener implements UaSubscriptionManager.SubscriptionListener {
-        private final OpcUaClient client;
-        private final SubscriptionCallback callback;
-
-        public CustomSubscriptionListener(OpcUaClient client, SubscriptionCallback callback) {
-            this.client = client;
-            this.callback = callback;
-        }
-
-        /**
-         * 重连时 尝试恢复之前的订阅失败时 会调用此方法
-         * @param uaSubscription 订阅
-         * @param statusCode 状态
-         */
-        @Override
-        public void onSubscriptionTransferFailed(UaSubscription uaSubscription, StatusCode statusCode) {
-            log.debug("恢复订阅失败 需要重新订阅");
-            //在回调方法中重新订阅
-            handler(client, callback);
         }
     }
 }

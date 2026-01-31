@@ -1,6 +1,6 @@
 package com.kangaroohy.milo.runner.subscription;
 
-import org.eclipse.milo.opcua.sdk.client.subscriptions.ManagedDataItem;
+import org.eclipse.milo.opcua.sdk.client.subscriptions.OpcUaMonitoredItem;
 import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 
 /**
@@ -13,5 +13,5 @@ import org.eclipse.milo.opcua.stack.core.types.builtin.DataValue;
 @FunctionalInterface
 public interface SubscriptionCallback {
 
-    void onSubscribe(ManagedDataItem dataItem, DataValue value);
+    void onSubscribe(OpcUaMonitoredItem monitoredItem, DataValue value);
 }

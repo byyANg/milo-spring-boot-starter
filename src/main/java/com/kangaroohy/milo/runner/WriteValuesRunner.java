@@ -34,7 +34,7 @@ public class WriteValuesRunner {
                     dataValues.add(new DataValue(entity.getVariant(), null, null));
                 }
 
-                List<StatusCode> statusCodeList = opcUaClient.writeValues(nodeIds, dataValues).join();
+                List<StatusCode> statusCodeList = opcUaClient.writeValues(nodeIds, dataValues);
                 for (int i = 0; i < statusCodeList.size(); i++) {
                     if (statusCodeList.get(i).isGood()) {
                         log.info("将值 '{}' 写入到点位：{} 成功", dataValues.get(i).getValue(), nodeIds.get(i));
